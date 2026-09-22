@@ -85,6 +85,12 @@
             "type" : "command"
           },
           {
+            "command" : "~\/.claude\/hooks\/block-publish-leak.sh",
+            "if" : "Bash(git push*)",
+            "statusMessage" : "Checking the push for employer content...",
+            "type" : "command"
+          },
+          {
             "command" : "~\/.claude\/hooks\/restrict-subagent-bash.sh",
             "statusMessage" : "Checking subagent shell restrictions...",
             "type" : "command"

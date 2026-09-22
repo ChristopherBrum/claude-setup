@@ -274,6 +274,7 @@ logic lives in `~/.claude/hooks/lib/`.
 |---|---|---|
 | `block-destructive-commands.sh` | PreToolUse (Bash) | Denies commands that destroy unrecoverable data, and prompts on recoverable-but-regrettable ones. Runs FIRST in the Bash chain, for the main thread AND every subagent. Rules in `lib/destructive-patterns.sh` |
 | `block-git-history-rewrite.sh` | PreToolUse (Bash) | Denies `git commit --amend`, `rebase`, `reset --hard`, force-push — commits stay append-only |
+| `block-publish-leak.sh` | PreToolUse (Bash, `git push*`) | Denies a push of `~/.claude` whose tracked content at HEAD names the employer. Terms are derived at runtime from `identity.json` (tracker host label, git owner, branch prefix, and the project key only as `KEY-1234`), plus optional extras in the gitignored `.publish-blocklist`, so the hook itself stays publishable. Regression matrix: `bash ~/.claude/hooks/lib/test-publish-guard.sh` (6 cases) |
 | `block-sensitive-writes.sh` | PreToolUse (Read\|Edit\|Write\|MultiEdit) | Denies reading/writing secrets (`.env*`, key and credential files) and editing generated files. Global (main thread too) |
 | `agent_clone_boundary.rb` | PreToolUse (Write\|Edit\|MultiEdit\|Bash) | Confines a subagent to the checkout its session started in. Regression matrix: `bash ~/.claude/hooks/lib/test-clone-boundary.sh` (33 cases) |
 | `restrict-subagent-bash.sh` | PreToolUse (Bash) | For subagents ONLY (via `agent_id`): auto-*allows* safe commands so agents don't prompt, while denying the dangerous set (`git commit`/`push`, installs, outbound network, `rm -rf`, secret-file reads) for all agents, plus repo/system-mutating shell for read-only agents (their `agent-notes/` + `/tmp` scratch stay writable). Also sources `lib/destructive-patterns.sh` *before* the write-agent auto-allow, so that allow can never cover a destructive command. Main-thread bash is unaffected |
@@ -287,6 +288,14 @@ worse than the long one. So `Stop` only measures, and `UserPromptSubmit` carries
 the next turn with the measured average attached, because a number changes behaviour where an
 adjective does not. It stays silent while the trailing average is inside budget, and it never
 blocks.
+
+**The leak guard is a hook, not a checklist.** `~/.claude` is public and lives on a personal
+account, while every session runs inside employer repos, so employer terms drift into it: an
+audit on 2026-09-21 found six in about three weeks (an org name in this guide, four hardcoded
+ticket keys, one set of internal portal names). That is a recurring rate, not an incident, and a
+command you have to remember to run does not catch a recurring rate. The terms live only in
+`identity.json`, which means the guard is portable: someone else cloning this repo gets their
+own blocklist by filling in their own identity.
 
 **Nothing destroys data without you.** `block-destructive-commands.sh` is the backstop added
 after a local development database was wiped by a command that never prompted — both the
