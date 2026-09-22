@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Link my personal Claude layer into a repo working tree.
+#
+# Agents, skills and commands are only discovered at <cwd>/.claude/, so a personal
+# per-repo layer has to be physically present in the tree. These symlinks point at
+# ~/.claude/repos/<repo>/ and are excluded via .git/info/exclude, which is per-clone
+# and never committed — so nothing personal can reach a team repo.
+#
+# Run after cloning a repo or adding a worktree:  link-personal-claude [path]
+set -euo pipefail
+
+repo_path="${1:-$PWD}"
+cd "$repo_path"
+
+git rev-parse --git-dir >/dev/null 2>&1 || { echo "not a git repo: $repo_path" >&2; exit 1; }
+
+name=$(basename "$(git rev-parse --show-toplevel)")
+src="$HOME/.claude/repos/$name"
+[ -d "$src" ] || { echo "no personal layer at $src" >&2; exit 1; }
+
+mkdir -p .claude
+linked=()
+for item in PROJECT.md agents skills commands agent-notes settings.local.json; do
+  [ -e "$src/$item" ] || continue
+  ln -sfn "$src/$item" ".claude/$item"
+  linked+=("$item")
+done
+
+# .git/info/exclude lives in the common dir, so worktrees share one copy: only add once.
+exclude="$(git rev-parse --git-common-dir)/info/exclude"
+for item in "${linked[@]}"; do
+  grep -qxF "/.claude/$item" "$exclude" 2>/dev/null && continue
+  printf '/.claude/%s\n' "$item" >> "$exclude"
+done
+
+printf 'linked into %s: %s\n' "$name" "${linked[*]}"
+git status --short | grep -q '^?? .claude' && echo "WARNING: .claude still shows in git status" || true

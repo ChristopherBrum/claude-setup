@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# Extract what I actually typed, from the session transcripts.
+#
+# The point is not a diary. It is to find the things I ask for by hand over and over that
+# should be a command, a PROJECT.md trap, or an agent — and the places where I had to
+# correct course, which say something about the setup rather than the task.
+#
+# Transcripts are a rolling ~30-day window, so every count is "in the window", never
+# "ever". Attribute by each entry's `.cwd`, not by which project dir the file sits in:
+# the project dir is fixed at session launch, cwd is not.
+#
+#   claude-prompts                  # prompts in the window, newest last
+#   claude-prompts --days 7         # narrow it
+#   claude-prompts --session <id>   # one session ($CLAUDE_CODE_SESSION_ID for this one)
+#   claude-prompts --summary        # aggregations only, no prompt list
+#   claude-prompts --questions      # what got asked that only earned a one-word reply
+set -uo pipefail
+
+PROJECTS="$HOME/.claude/projects"
+DAYS=""; SESSION=""; SUMMARY=""; LIST=1; QUESTIONS=""
+
+# A prompt that is nothing but assent. Anything longer carried information; these did not,
+# which makes the question that preceded one a candidate for not being asked at all.
+ASSENT='^(yes|yep|yeah|ok|okay|go|go ahead|yes please|sure|do it|please do|lets go|let.s go|sounds good|looks good|perfect|continue|proceed)$'
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --days) DAYS="${2:-}"; shift 2 ;;
+    --session) SESSION="${2:-}"; shift 2 ;;
+    --summary) SUMMARY=1; LIST=""; shift ;;
+    --questions) QUESTIONS=1; LIST=""; shift ;;
+    -h|--help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+[ -d "$PROJECTS" ] || { echo "no transcripts at $PROJECTS" >&2; exit 1; }
+command -v jq >/dev/null || { echo "jq required" >&2; exit 1; }
+
+files() {
+  if [ -n "$SESSION" ]; then
+    find "$PROJECTS" -maxdepth 2 -name "$SESSION.jsonl" -type f -print0
+  elif [ -n "$DAYS" ]; then
+    find "$PROJECTS" -maxdepth 2 -name '*.jsonl' -type f -mtime "-$DAYS" -print0
+  else
+    find "$PROJECTS" -maxdepth 2 -name '*.jsonl' -type f -print0
+  fi
+}
+
+# One line per typed prompt: ISO-ish timestamp, project basename, text.
+# Injected content is dropped: tool results, system reminders, command stdout, task
+# notifications, compact summaries, interrupts. A slash command collapses to /name, since
+# the interesting fact is which command ran, not its expansion.
+prompts=$(files | xargs -0 cat 2>/dev/null | jq -r '
+  select(.type=="user" and ((.isMeta // false) | not))
+  | (.cwd // "?") as $cwd
+  | (.timestamp // "") as $ts
+  | (.message.content
+      | if type=="string" then .
+        else (map(select(.type=="text").text) | join(" "))
+        end) as $text
+  | select($text != null and ($text | length) > 0)
+  | select($text | test("<system-reminder>|<local-command-|<task-notification>|^\\[Request interrupted|This session is being continued from a previous conversation") | not)
+  | (if ($text | test("<command-name>"))
+       then ($text | capture("<command-name>(?<n>[^<]+)</command-name>").n)
+       else ($text | gsub("\\s+"; " "))
+     end) as $clean
+  | select($clean | length > 0)
+  | [$ts[0:16], ($cwd | split("/") | last), $clean] | @tsv
+' 2>/dev/null | sort)
+
+total=$(printf '%s\n' "$prompts" | grep -ac . || true)
+
+echo "=== SCOPE ==="
+printf 'prompts: %s\n' "$total"
+printf 'window:  %s .. %s\n' \
+  "$(printf '%s\n' "$prompts" | head -1 | cut -f1)" \
+  "$(printf '%s\n' "$prompts" | tail -1 | cut -f1)"
+echo 'NOTE: rolling ~30-day transcript window. Counts are "in the window", not "ever".'
+
+if [ -n "$SUMMARY" ]; then
+  echo
+  echo "=== PER PROJECT ==="
+  printf '%s\n' "$prompts" | cut -f2 | sort | uniq -c | sort -rn
+
+  echo
+  echo "=== SLASH COMMANDS TYPED ==="
+  # A command name is a single token. Anchoring on that keeps a prompt that merely opens
+  # with an absolute path from being counted as one.
+  printf '%s\n' "$prompts" | cut -f3 | grep -aoE '^/[a-z][a-z0-9:_-]*$' | sort | uniq -c | sort -rn
+
+  echo
+  echo "=== SHORT IMPERATIVES (<=6 words, no slash) ==="
+  echo "Repeated ones are the strongest command candidates: a thing asked for by hand, often."
+  printf '%s\n' "$prompts" | cut -f3 | grep -av '^/' \
+    | awk 'NF<=6 && NF>0' | tr 'A-Z' 'a-z' | sed 's/[[:punct:]]*$//' \
+    | sort | uniq -c | sort -rn | awk '$1>1' | head -25
+
+  echo
+  echo "=== OPENING VERBS (first word, non-slash) ==="
+  printf '%s\n' "$prompts" | cut -f3 | grep -av '^/' \
+    | awk '{print tolower($1)}' | sed 's/[[:punct:]]//g' \
+    | sort | uniq -c | sort -rn | head -20
+
+  echo
+  echo "=== COURSE CORRECTIONS ==="
+  echo "Friction signal. A cluster around one topic is a setup gap, not a one-off."
+  printf '%s\n' "$prompts" | cut -f3 \
+    | grep -aicE "^(no|nope|actually|wrong)\b|\b(i said|i meant|not what i|don't|do not|stop|revert|undo|instead of)\b" \
+    | sed 's/^/  matching prompts: /'
+  printf '%s\n' "$prompts" \
+    | grep -aiE "	((no|nope|actually|wrong)\b|.*\b(i said|i meant|not what i)\b)" \
+    | cut -f1,3 | tail -15
+fi
+
+if [ -n "$QUESTIONS" ]; then
+  # Pair each assistant turn with the prompt that answered it. A question answered with a
+  # bare "yes" is one the setup could have decided on its own, or one whose go-ahead was
+  # already given earlier in the same sequence.
+  questions=$(files | xargs -0 cat 2>/dev/null | jq -rc '
+    if .type=="assistant" then
+      (([.message.content[]? | select(.type=="text") | .text] | join(" ")) | gsub("\\s+";" ")) as $t
+      | select($t|length>0) | "A\t" + $t
+    elif .type=="user" and ((.isMeta // false)|not) and (((.message.content|tostring)|test("tool_result"))|not) then
+      ((.message.content | if type=="string" then . else (map(select(.type=="text").text)|join(" ")) end) // ""
+        | gsub("\\s+";" ")) as $t
+      | select($t|length>0) | "U\t" + $t
+    else empty end' 2>/dev/null \
+  | awk -F'\t' -v assent="$ASSENT" '
+      $1=="A" { last=$2; next }
+      $1=="U" {
+        u=tolower($2); gsub(/[[:punct:]]*$/,"",u)
+        if (u ~ assent && last!="") {
+          n=split(last, s, /\? /); q=(n>1 ? s[n-1] "?" : last)
+          print substr(q, length(q)>150 ? length(q)-150 : 1)
+        }
+        last=""
+      }')
+
+  echo
+  echo "=== QUESTIONS THAT EARNED ONLY A ONE-WORD REPLY ==="
+  printf 'count: %s\n' "$(printf '%s\n' "$questions" | grep -ac . || true)"
+  echo 'Each of these cost a round trip to learn nothing. Two fixes, and they differ:'
+  echo '  - the answer was always going to be yes  -> stop asking, just do it'
+  echo '  - the go-ahead was already given upstream -> stop re-asking per step'
+
+  echo
+  echo "--- opening phrase ---"
+  printf '%s\n' "$questions" | grep -aoiE "(want me to|shall i|should i|do you want me|would you like me|ready (for|to)|say go|proceed with|go ahead and)" \
+    | tr 'A-Z' 'a-z' | sort | uniq -c | sort -rn
+
+  echo
+  echo "--- what was being offered ---"
+  printf '%s\n' "$questions" | grep -aoiE "(want me to|shall i|should i) [a-z]+" \
+    | tr 'A-Z' 'a-z' | awk '{print $NF}' | sort | uniq -c | sort -rn | head -12
+
+  echo
+  echo "--- the questions ---"
+  printf '%s\n' "$questions" | sed 's/^/  /' | tail -25
+fi
+
+if [ -n "$LIST" ]; then
+  echo
+  echo "=== PROMPTS (oldest first) ==="
+  printf '%s\n' "$prompts" | awk -F'\t' '{ printf "%s  [%s]  %s\n", $1, $2, substr($3,1,220) }'
+fi
+
+exit 0

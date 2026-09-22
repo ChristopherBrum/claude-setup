@@ -1,0 +1,65 @@
+# Allowlist, deliberately. ~/.claude is 1.1 GB and only ~400 KB of it is configuration;
+# the rest is harness state (session transcripts, shell history, file snapshots, caches).
+#
+# This is an allowlist rather than a denylist because the harness adds new state
+# directories on its own schedule. A denylist silently starts tracking the next one, and
+# transcripts contain whatever was pasted into a session. Ignore everything, then name
+# what belongs in version control.
+
+*
+
+# --- the setup itself -----------------------------------------------------------------
+!.gitignore
+!CLAUDE.md
+!HOW-TO.md
+!settings.json
+
+!bin/
+!bin/**
+!hooks/
+!hooks/**
+!commands/
+!commands/**
+!skills/
+!skills/**
+!agents/
+!agents/**
+!workflows/
+!workflows/**
+
+# --- per-project layers: NEVER in this repo -------------------------------------------
+# repos/<name>/ holds employer-specific knowledge: module layouts, product rules, internal
+# doc paths, vendor integrations. This repo is published to a personal account, so the
+# project layers get their own private repo (or stay local). Only the template ships.
+# Three rules in this order, because git cannot re-include a file whose parent DIRECTORY
+# is excluded: un-ignore `repos/` itself (the leading `*` caught it), re-exclude its
+# CONTENTS, then let the template back in.
+!repos/
+/repos/*
+!repos/_template/
+!repos/_template/**
+
+# Machine and employer identity: Jira host, project key, branch prefix, git owner.
+# The committed example documents the shape; the real values never land here.
+/identity.json
+!identity.example.json
+
+# Worklogs quote real prompts and real work. They are the input to /setup-review, and
+# they never belong in a published config repo.
+/worklogs/
+
+# --- never, even if a rule above would catch it ---------------------------------------
+# settings.local.json at THIS level is machine-local by definition. The per-repo ones
+# under repos/ are intentionally tracked: they are the project's toolchain permissions.
+/settings.local.json
+.DS_Store
+*.log
+*.swp
+
+# Secrets and machine identity, belt and braces. The allowlist already excludes these,
+# but naming them means a future `!`-rule cannot accidentally expose one.
+.credentials.json
+*token*.json
+policy-limits*.json
+remote-settings.json
+statsig/

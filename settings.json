@@ -1,0 +1,310 @@
+{
+  "$schema" : "https:\/\/json.schemastore.org\/claude-code-settings.json",
+  "effortLevel" : "xhigh",
+  "enabledPlugins" : {
+    "figma@claude-plugins-official" : false,
+    "i-have-adhd@i-have-adhd" : true,
+    "ponytail@ponytail" : true
+  },
+  "extraKnownMarketplaces" : {
+    "claude-code-plugins" : {
+      "source" : {
+        "repo" : "anthropics\/claude-code",
+        "source" : "github"
+      }
+    },
+    "i-have-adhd" : {
+      "source" : {
+        "repo" : "ayghri\/i-have-adhd",
+        "source" : "github"
+      }
+    },
+    "ponytail" : {
+      "source" : {
+        "repo" : "DietrichGebert\/ponytail",
+        "source" : "github"
+      }
+    }
+  },
+  "feedbackSurveyState" : {
+    "lastShownTime" : 1754088909800
+  },
+  "hooks" : {
+    "Notification" : [
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest" : [
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse" : [
+      {
+        "hooks" : [
+          {
+            "command" : "~\/.claude\/hooks\/sync-howto-reminder.sh",
+            "statusMessage" : "Checking whether HOW-TO.md needs a sync...",
+            "type" : "command"
+          }
+        ],
+        "matcher" : "Write|Edit"
+      },
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "PreToolUse" : [
+      {
+        "hooks" : [
+          {
+            "command" : "~\/.claude\/hooks\/block-destructive-commands.sh",
+            "statusMessage" : "Checking for destructive commands...",
+            "type" : "command"
+          },
+          {
+            "command" : "~\/.claude\/hooks\/block-git-history-rewrite.sh",
+            "if" : "Bash(git *)",
+            "statusMessage" : "Checking for history-rewriting git commands...",
+            "type" : "command"
+          },
+          {
+            "command" : "~\/.claude\/hooks\/restrict-subagent-bash.sh",
+            "statusMessage" : "Checking subagent shell restrictions...",
+            "type" : "command"
+          }
+        ],
+        "matcher" : "Bash"
+      },
+      {
+        "hooks" : [
+          {
+            "command" : "~\/.claude\/hooks\/block-sensitive-writes.sh",
+            "statusMessage" : "Checking for sensitive-path access...",
+            "type" : "command"
+          }
+        ],
+        "matcher" : "Read|Edit|Write|MultiEdit"
+      },
+      {
+        "hooks" : [
+          {
+            "command" : "ruby ~\/.claude\/hooks\/agent_clone_boundary.rb",
+            "statusMessage" : "Checking checkout boundary...",
+            "type" : "command"
+          }
+        ],
+        "matcher" : "Write|Edit|MultiEdit|Bash"
+      },
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "SessionEnd" : [
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "SessionStart" : [
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "Stop" : [
+      {
+        "hooks" : [
+          {
+            "command" : "~\/.claude\/hooks\/length-budget.sh --measure",
+            "type" : "command"
+          }
+        ]
+      },
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "StopFailure" : [
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "SubagentStop" : [
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit" : [
+      {
+        "hooks" : [
+          {
+            "command" : "~\/.claude\/hooks\/length-budget.sh --remind",
+            "type" : "command"
+          }
+        ]
+      },
+      {
+        "hooks" : [
+          {
+            "command" : "\/Users\/christopher\/.config\/iterm2\/cc-status",
+            "type" : "command"
+          }
+        ]
+      }
+    ]
+  },
+  "model" : "opus[1m]",
+  "permissions" : {
+    "allow" : [
+      "Read(\/\/**)",
+      "Edit(~\/.claude\/repos\/**)",
+      "Edit(~\/.claude\/projects\/**)",
+      "Edit(~\/.claude\/scratch\/**)",
+      "Edit(\/\/tmp\/**)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git fetch:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git remote:*)",
+      "Bash(git stash list:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr status:*)",
+      "Bash(gh search:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh api user:*)",
+      "Bash(gh api graphql:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(awk:*)",
+      "Bash(git grep:*)",
+      "Bash(git merge-tree:*)",
+      "Bash(python3:*)",
+      "Bash(npm view:*)",
+      "WebSearch",
+      "mcp__atlassian__getAccessibleAtlassianResources",
+      "mcp__atlassian__getJiraIssue",
+      "mcp__atlassian__searchJiraIssuesUsingJql",
+      "mcp__appsignal__get_applications",
+      "mcp__appsignal__get_exception_incidents",
+      "mcp__appsignal__get_traces",
+      "mcp__appsignal__get_incident",
+      "Bash(~\/.claude\/bin\/pr-diff-lines:*)",
+      "Bash(~\/.claude\/bin\/claude-usage:*)",
+      "Bash(~\/.claude\/bin\/claude-prompts:*)",
+      "Bash(~\/.claude\/bin\/link-personal-claude:*)",
+      "Bash(~\/.claude\/bin\/bootstrap:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(bundle exec rspec:*)",
+      "Bash(bundle exec rubocop:*)",
+      "Bash(bundle exec erblint:*)",
+      "Bash(yarn lint:*)",
+      "Bash(yarn tsc:*)",
+      "Bash(yarn eslint:*)",
+      "Bash(yarn jest:*)",
+      "Bash(yarn test:*)",
+      "Bash(yarn vitest:*)",
+      "Bash(yarn build:*)"
+    ],
+    "defaultMode" : "auto",
+    "deny" : [
+      "Bash(sudo:*)",
+      "Bash(dropdb:*)",
+      "Bash(rm -rf \/:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(rm -fr:*)",
+      "Bash(git clean:*)",
+      "Bash(git stash drop:*)",
+      "Bash(git stash clear:*)",
+      "Bash(git restore:*)",
+      "Bash(rails db:drop:*)",
+      "Bash(rails db:reset:*)",
+      "Bash(rails db:setup:*)",
+      "Bash(rails db:schema:load:*)",
+      "Bash(rails db:migrate:reset:*)",
+      "Bash(bin\/rails db:drop:*)",
+      "Bash(bin\/rails db:reset:*)",
+      "Bash(bin\/rails db:setup:*)",
+      "Bash(bin\/rails db:schema:load:*)",
+      "Bash(bin\/rails db:migrate:reset:*)",
+      "Bash(bundle exec rails db:drop:*)",
+      "Bash(bundle exec rails db:reset:*)",
+      "Bash(bundle exec rails db:setup:*)",
+      "Bash(bundle exec rails db:schema:load:*)",
+      "Bash(bundle exec rails db:migrate:reset:*)",
+      "Bash(bundle exec rake db:drop:*)",
+      "Bash(bundle exec rake db:reset:*)",
+      "Bash(bundle exec rake db:setup:*)",
+      "Bash(redis-cli flushall:*)",
+      "Bash(redis-cli FLUSHALL:*)",
+      "Bash(redis-cli flushdb:*)",
+      "Bash(redis-cli FLUSHDB:*)",
+      "Bash(heroku run:*)",
+      "Bash(heroku pg:reset:*)",
+      "Bash(terraform destroy:*)",
+      "Bash(kubectl delete:*)"
+    ]
+  },
+  "skipWorkflowUsageWarning" : true,
+  "statusLine" : {
+    "command" : "~\/.claude\/statusline.sh",
+    "padding" : 0,
+    "type" : "command"
+  },
+  "theme" : "light"
+}

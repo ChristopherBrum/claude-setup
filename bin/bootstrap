@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Set up this Claude config on a machine after cloning ~/.claude.
+#
+# The per-project layers under repos/ only take effect once they are symlinked into the
+# matching working tree, because Claude Code discovers agents, skills and commands at
+# <cwd>/.claude/ and nowhere else. A fresh clone has no symlinks, and the failure is
+# silent: the agents simply do not appear. So run this once per machine.
+#
+#   bin/bootstrap            # link every repos/<name> that has a matching checkout
+#   bin/bootstrap --dry-run  # show what it would do
+#   CODE_DIR=~/src bin/bootstrap
+set -euo pipefail
+
+CODE_DIR="${CODE_DIR:-$HOME/Documents}"
+REPOS="$HOME/.claude/repos"
+LINK="$HOME/.claude/bin/link-personal-claude"
+dry=""
+[ "${1:-}" = "--dry-run" ] && dry=1
+
+[ -d "$REPOS" ] || { echo "no per-project layers at $REPOS"; exit 0; }
+[ -x "$LINK" ] || { echo "missing $LINK" >&2; exit 1; }
+
+echo "code dir: $CODE_DIR"
+linked=0 missing=0
+
+for d in "$REPOS"/*/; do
+  [ -d "$d" ] || continue
+  name=$(basename "$d")
+  [ "$name" = "_template" ] && continue
+  target="$CODE_DIR/$name"
+
+  if [ ! -d "$target/.git" ]; then
+    printf '  %-26s no checkout at %s (skipped)\n' "$name" "$target"
+    missing=$((missing + 1))
+    continue
+  fi
+
+  if [ -n "$dry" ]; then
+    printf '  %-26s would link -> %s\n' "$name" "$target"
+  else
+    printf '  %-26s ' "$name"
+    "$LINK" "$target"
+  fi
+  linked=$((linked + 1))
+done
+
+echo
+verb="linked"; [ -n "$dry" ] && verb="would be linked"
+printf '%s project layer(s) %s, %s without a local checkout\n' "$linked" "$verb" "$missing"
+
+[ "$missing" -gt 0 ] && cat <<EOF
+
+A layer without a checkout is not an error: it means that repo is not cloned here yet.
+Clone it under \$CODE_DIR and re-run, or pass CODE_DIR if your repos live elsewhere.
+EOF
+exit 0

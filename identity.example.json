@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Copy to identity.json and fill in. identity.json is gitignored: it holds the employer-",
+    "and machine-specific values that the commands and hooks would otherwise hardcode.",
+    "Keeping them here is what lets the workflow itself be published.",
+    "",
+    "Anything a command needs to know about WHERE you work goes here. Anything about HOW a",
+    "particular project is built goes in that project's repos/<name>/PROJECT.md instead."
+  ],
+
+  "issue_tracker": {
+    "kind": "jira",
+    "host": "your-org.atlassian.net",
+    "project_key": "ABC",
+    "mcp_server": "atlassian"
+  },
+
+  "git": {
+    "owner": "your-org",
+    "default_base": "main",
+    "branch_prefix": "xx-abc",
+    "squash_merges": true
+  },
+
+  "code_dir": "~/Documents"
+}

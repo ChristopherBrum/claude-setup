@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Print a file's new-side line numbers as they appear in a PR diff, so a review comment can
+# be anchored to a line that is actually part of the diff.
+#
+#   pr-diff-lines <pr-number> <path-in-repo> [first] [last]
+#
+# Lives here rather than inlined in /pr-review because the inline form defined a shell
+# function on one line, which matches no permission prefix and trips the "expansion
+# obfuscation" check on every single review.
+set -uo pipefail
+
+pr="${1:-}"; path="${2:-}"; first="${3:-}"; last="${4:-}"
+
+if [ -z "$pr" ] || [ -z "$path" ]; then
+  sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
+  exit 1
+fi
+
+command -v gh >/dev/null || { echo "gh required" >&2; exit 1; }
+
+repo=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null)
+[ -n "$repo" ] || { echo "not a GitHub repo, or gh is not authenticated" >&2; exit 1; }
+
+patch=$(gh api "repos/$repo/pulls/$pr/files" --paginate \
+          --jq ".[] | select(.filename==\"$path\") | .patch" 2>/dev/null)
+
+if [ -z "$patch" ]; then
+  echo "no diff for $path in $repo#$pr — the file is unchanged, renamed, or too large for the API" >&2
+  exit 2
+fi
+
+# Walk the hunks tracking the new-side counter. Removed lines do not advance it; context and
+# added lines do. Only new-side numbers can anchor a comment.
+numbered=$(printf '%s\n' "$patch" | awk '
+  /^@@/ { split($3, a, ","); sub(/^\+/, "", a[1]); n = a[1] + 0; next }
+  /^-/  { next }
+        { printf "%5d %s\n", n, $0; n++ }')
+
+if [ -n "$first" ]; then
+  printf '%s\n' "$numbered" | awk -v f="$first" -v l="${last:-999999}" '$1+0 >= f && $1+0 <= l'
+else
+  printf '%s\n' "$numbered"
+fi
