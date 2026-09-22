@@ -22,6 +22,17 @@
 !commands/**
 !skills/
 !skills/**
+
+# The manifest exists only so `claude plugin eval` resolves this directory as a target.
+# Nothing loads it at session start: plugins load from plugins/installed_plugins.json.
+!.claude-plugin/
+!.claude-plugin/**
+
+# Eval cases ship with the setup; their results do not. A results dir is timestamped
+# run output, including HTML reports, and regenerates on every run.
+!evals/
+!evals/**
+/evals/results/
 !agents/
 !agents/**
 !workflows/

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Run the eval suite against a clean copy of the setup.
+#
+# Why a copy and not ~/.claude itself: `claude plugin eval` treats the whole target
+# directory as the plugin and copies it into a sandbox. ~/.claude is 1.1 GB of harness
+# state (session transcripts, caches, file-history), the transcripts hold real work, and
+# file-history uses hard links, which the runner rejects outright. So the plugin is
+# assembled from the four things that are actually under test.
+#
+#   run-evals                      every case
+#   run-evals --case trigger-*     one or some
+#   run-evals --runs 3             more samples per case (default 1 here, 3 in the CLI)
+#
+# Everything after the first argument is passed through to `claude plugin eval`.
+set -euo pipefail
+
+SRC="$HOME/.claude"
+BUILD="$SRC/scratch/eval-plugin"
+
+rm -rf "$BUILD"
+mkdir -p "$BUILD"
+cp -R "$SRC/.claude-plugin" "$BUILD/.claude-plugin"
+cp -R "$SRC/skills"         "$BUILD/skills"
+cp -R "$SRC/agents"         "$BUILD/agents"
+cp -R "$SRC/evals"          "$BUILD/evals"
+rm -rf "$BUILD/evals/results"
+
+# Results belong next to the cases in the real repo, not in a scratch dir that is deleted
+# on the next run.
+mkdir -p "$SRC/evals/results"
+
+echo "built $(du -sh "$BUILD" | cut -f1) plugin from $(find "$BUILD/skills" -name SKILL.md | wc -l | tr -d ' ') skills, $(find "$BUILD/evals" -name prompt.md | wc -l | tr -d ' ') cases"
+
+claude plugin eval "$BUILD" \
+  --runs "${EVAL_RUNS:-1}" \
+  --output-dir "$SRC/evals/results/$(date -u +%Y%m%dT%H%M%SZ)" \
+  --trust-plugin "$@"

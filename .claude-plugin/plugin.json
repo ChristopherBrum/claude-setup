@@ -1,0 +1,5 @@
+{
+  "name": "claude-setup",
+  "version": "0.1.0",
+  "description": "Personal Claude Code setup: skills, agents and hooks. This manifest exists so `claude plugin eval` can resolve this directory as a target; it is not a registered plugin and nothing loads it at session start."
+}

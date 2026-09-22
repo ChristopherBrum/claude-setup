@@ -379,6 +379,37 @@ assets, since a lint that silently inspects nothing looks exactly like a passing
 
 **Nothing runs these automatically yet.** That is the open gap, not an oversight to route around.
 
+### Evals: the half a spec cannot reach
+
+```bash
+~/.claude/bin/run-evals                      # every case, 1 run each
+~/.claude/bin/run-evals --case 'trigger-*'   # a subset
+EVAL_RUNS=3 ~/.claude/bin/run-evals          # 3 samples per case, the CLI default
+```
+
+The runner is the built-in `claude plugin eval`, not something written here. It already has
+the grader this setup needs (`type: tool_used`, `tool: Skill`) and an **ablation arm**: every
+case also runs against a no-plugin baseline, so the result says whether a skill fired *because
+of its description* or whether plain Claude would have done the same thing unaided. That delta
+is the only thing that justifies a `description` occupying context in every session.
+
+**`run-evals` builds a clean copy first, and that is not incidental.** `claude plugin eval`
+treats its whole target directory as the plugin and copies it into a sandbox. Pointed at
+`~/.claude` it fails outright, because `file-history/` uses hard links and the runner rejects
+them, and if it had succeeded it would have copied 1.1 GB of session transcripts into a sandbox.
+The build assembles 188 KB from the manifest, `skills/`, `agents/` and `evals/`. Nothing else is
+under test, and nothing private travels.
+
+**A negative case needs two graders, not one.** "This prompt must not fire a skill" is satisfied
+by a run that crashed and did nothing, which is how a broken suite reports green. Every
+`no-trigger-*` case therefore pairs `min: 0, max: 0` with an LLM grader asserting the question
+was actually answered. `max: 0` alone does not work: the minimum stays 1 and the range reads
+`1..0`, which nothing can satisfy.
+
+**Runs are not free and not runnable from inside a session.** Each case spawns a full `claude`
+child on your credential; started from a Claude Code session it dies with `Not logged in`. Run
+them yourself. Budget with `--max-cost-usd`, gate CI with `--threshold`.
+
 ---
 
 ## Workflows
