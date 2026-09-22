@@ -2,9 +2,8 @@
 name: rails-engineer
 description: >-
   Implements Ruby and Rails changes: models, controllers, services, jobs, migrations, and their
-  specs. Write-capable. Use when explicitly asked to delegate Rails implementation work, or when
-  a change is large enough that a fresh context is worth the round trip. Returns a tested diff and
-  never commits. NOT for frontend work in the same repo (use `frontend-engineer`), reviewing
+  specs. Write-capable. Use PROACTIVELY for Rails implementation work, test-first. Returns a
+  tested diff and never commits. NOT for frontend work in the same repo (use `frontend-engineer`), reviewing
   existing code (use `reviewer`), or choosing an approach before code exists (use `architect`).
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: opus

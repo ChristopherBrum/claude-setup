@@ -45,14 +45,19 @@ found by reading gem source), or a one-line orientation for a class/service/modu
 - Applies to every language and to specs, not just app code. Existing verbose comments in a file are
   not a license to match them.
 
+## Tests
+
+**Test first, everywhere.** Write the failing spec or test, run it and watch it fail, then write
+the implementation. Applies to the main thread and every write agent. Exempt: config, docs, and
+changes with no behavior to assert.
+
 ## Delegation
 
-Default to inline. A subagent starts with a fresh context and has to re-read everything, so a
-lookup or a small edit is faster done directly. Delegate only for genuine parallelism, to keep
-a large search out of this window, or when a second independent perspective is worth the wait.
-
-Read-only agents earn the round trip; write agents usually don't, because by the time I'd
-delegate an edit the main thread is already primed. Route by question:
+A subagent starts with a fresh context and has to re-read everything, so a lookup or a
+one-line edit is faster done inline. Delegate read-only work for genuine parallelism, to keep a
+large search out of this window, or when a second independent perspective is worth the wait.
+Delegate implementation (a feature, a fix, a change with a test) to the matching write agent
+on your own; you do not need me to ask. Route by question:
 
 | Question | Agent | Deploy |
 |---|---|---|
@@ -60,9 +65,9 @@ delegate an edit the main thread is already primed. Route by question:
 | Is this diff correct? | `reviewer` | on your own |
 | What should we build? Where does it belong? | `architect` | on your own |
 | What could break? Is this actually tested? | `qa-engineer` | on your own |
-| Implement this in Ruby/Rails | `rails-engineer` | only when I ask |
-| Implement this in Java/Spring | `java-engineer` | only when I ask |
-| Implement this in TypeScript/React | `frontend-engineer` | only when I ask |
+| Implement this in Ruby/Rails | `rails-engineer` | on your own, one at a time |
+| Implement this in Java/Spring | `java-engineer` | on your own, one at a time |
+| Implement this in TypeScript/React | `frontend-engineer` | on your own, one at a time |
 
 Say which one you used. Each reads `.claude/PROJECT.md` for project context, so they work in any
 repo without being re-tuned.

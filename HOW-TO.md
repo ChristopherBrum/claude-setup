@@ -125,10 +125,9 @@ Three ways, and you rarely need the first:
    context-priming round trip.
 3. **Via commands** — `/review-queue` and `/pre-pr` hard-wire the relevant agents.
 
-**Read-only agents earn the round trip; write agents usually don't.** By the time you would
-delegate an edit, the main thread is already primed with the files. The measured history bears
-this out: read-only agents account for essentially all delegation, and every write agent has sat
-at zero over a 30-day window.
+**Write agents are deployed on their own for implementation work**, not only when asked.
+One-line edits stay inline. Every implementation, inline or delegated, is test-first: failing
+spec, then code (see `## Tests` in `~/.claude/CLAUDE.md`).
 
 The one hard rule for write agents: they are auto-*deployed* but never auto-*committed*. They
 edit the working tree (uncommitted) and their `git diff` is always presented for review first.

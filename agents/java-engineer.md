@@ -2,8 +2,7 @@
 name: java-engineer
 description: >-
   Implements Java and Spring Boot changes: services, controllers, entities, migrations, and their
-  tests. Write-capable. Use when explicitly asked to delegate Java implementation work, or when a
-  change is large enough that a fresh context is worth the round trip. Returns a tested diff and
+  tests. Write-capable. Use PROACTIVELY for Java implementation work, test-first. Returns a tested diff and
   never commits. NOT for frontend work in the same repo (use `frontend-engineer`), reviewing
   existing code (use `reviewer`), or choosing an approach before code exists (use `architect`).
 tools: Read, Write, Edit, Grep, Glob, Bash
