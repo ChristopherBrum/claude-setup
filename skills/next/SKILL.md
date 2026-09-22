@@ -53,7 +53,7 @@ that rank, and the one command or skill that starts it.
 
 ```
 1. PR #18971 has 3 unanswered review comments from Tuesday   → /comments 18971
-2. ENG-1450 is In Progress with nothing pushed for 4 days    → /ticket-plan 1450
+2. ABC-1450 is In Progress with nothing pushed for 4 days    → /ticket-plan 1450
 3. 2 PRs awaiting your review                                → /review-queue
 ```
 
