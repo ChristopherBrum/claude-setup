@@ -36,8 +36,14 @@ deny() {
 matches() { printf '%s' "$path" | grep -Eq "$1"; }
 
 # 1. Secrets/credentials — deny for ANY file tool (Read, Edit, Write).
-if matches '(^|/)\.env($|\.)' \
-  || matches '(^|/)config/master\.key$' \
+#
+# `.env.example` and its siblings are the documented shape of the env, carry no values,
+# and are committed. Denying them blocks the legitimate "which vars does this project
+# need" read with no secret at stake, so they are exempt by suffix.
+if matches '(^|/)\.env($|\.)' && ! matches '\.(example|sample|template|dist)$'; then
+  deny "Blocked: '$path' is a secret/credential file. Do not read or write it through the assistant. Fetch secrets at runtime via Secret.fetch (see CLAUDE.md)."
+fi
+if matches '(^|/)config/master\.key$' \
   || matches '(^|/)config/credentials([/.][^/]*)*$'; then
   deny "Blocked: '$path' is a secret/credential file. Do not read or write it through the assistant. Fetch secrets at runtime via Secret.fetch (see CLAUDE.md)."
 fi
