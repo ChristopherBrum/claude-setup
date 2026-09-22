@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Run every hook regression matrix. Five separate scripts is four too many to remember,
+# and an unrun test is the same as no test.
+#
+#   test-hooks            run all
+#   test-hooks length     run the ones whose name matches
+set -uo pipefail
+
+LIB="$HOME/.claude/hooks/lib"
+filter="${1:-}"
+total_fail=0 ran=0
+
+for t in "$LIB"/test-*.sh; do
+  name=$(basename "$t" .sh); name=${name#test-}
+  [ -n "$filter" ] && case "$name" in *"$filter"*) ;; *) continue ;; esac
+  ran=$((ran+1))
+  printf '\n\033[1m── %s\033[0m\n' "$name"
+  if out=$(bash "$t" 2>&1); then
+    printf '%s\n' "$out" | tail -1
+  else
+    printf '%s\n' "$out" | grep -E 'FAIL|passed' || printf '%s\n' "$out" | tail -3
+    total_fail=$((total_fail+1))
+  fi
+done
+
+[ "$ran" -eq 0 ] && { echo "no matrix matches '$filter'"; exit 1; }
+printf '\n%d matrices run, %d with failures\n' "$ran" "$total_fail"
+[ "$total_fail" -eq 0 ]

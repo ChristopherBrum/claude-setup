@@ -92,6 +92,8 @@ Five mechanisms, each with a job:
 ├── workflows/             # saved multi-agent Workflow scripts
 ├── bin/bootstrap          # run once per machine after cloning: links every project layer
 ├── bin/link-personal-claude   # symlinks repos/<project>/ into one clone or worktree
+├── bin/test-hooks         # run every hook regression matrix; `test-hooks <filter>` for one
+├── bin/lint-assets        # frontmatter lint for skills/agents/commands (silent-failure catcher)
 ├── bin/pr-diff-lines      # new-side line numbers for a file in a PR diff (comment anchors)
 ├── bin/claude-usage       # what the setup DID: delegations, commands, declared vs used
 ├── bin/claude-prompts     # what I ASKED FOR: imperatives, corrections, and --questions
@@ -285,13 +287,13 @@ logic lives in `~/.claude/hooks/lib/`.
 | Hook | Event | Enforces |
 |---|---|---|
 | `block-destructive-commands.sh` | PreToolUse (Bash) | Denies commands that destroy unrecoverable data, and prompts on recoverable-but-regrettable ones. Runs FIRST in the Bash chain, for the main thread AND every subagent. Rules in `lib/destructive-patterns.sh` |
-| `block-git-history-rewrite.sh` | PreToolUse (Bash) | Denies `git commit --amend`, `rebase`, `reset --hard`, force-push — commits stay append-only |
+| `block-git-history-rewrite.sh` | PreToolUse (Bash) | Denies `git commit --amend`, `rebase`, `reset --hard`, force-push — commits stay append-only. Recovery flags (`--abort/--continue/--skip/--quit`) stay usable. Regression matrix: `bash ~/.claude/hooks/lib/test-git-history-rewrite.sh` (18 cases) |
 | `block-publish-leak.sh` | PreToolUse (Bash, `git push*`) | Denies a push of `~/.claude` whose tracked content at HEAD names the employer. Terms are derived at runtime from `identity.json` (tracker host label, git owner, branch prefix, and the project key only as `KEY-1234`), plus optional extras in the gitignored `.publish-blocklist`, so the hook itself stays publishable. Regression matrix: `bash ~/.claude/hooks/lib/test-publish-guard.sh` (6 cases) |
-| `block-sensitive-writes.sh` | PreToolUse (Read\|Edit\|Write\|MultiEdit) | Denies reading/writing secrets (`.env*`, key and credential files) and editing generated files. Global (main thread too) |
-| `agent_clone_boundary.rb` | PreToolUse (Write\|Edit\|MultiEdit\|Bash) | Confines a subagent to the checkout its session started in. Regression matrix: `bash ~/.claude/hooks/lib/test-clone-boundary.sh` (33 cases) |
-| `restrict-subagent-bash.sh` | PreToolUse (Bash) | For subagents ONLY (via `agent_id`): auto-*allows* safe commands so agents don't prompt, while denying the dangerous set (`git commit`/`push`, installs, outbound network, `rm -rf`, secret-file reads) for all agents, plus repo/system-mutating shell for read-only agents (their `agent-notes/` + `/tmp` scratch stay writable). Also sources `lib/destructive-patterns.sh` *before* the write-agent auto-allow, so that allow can never cover a destructive command. Main-thread bash is unaffected |
+| `block-sensitive-writes.sh` | PreToolUse (Read\|Edit\|Write\|MultiEdit) | Denies reading/writing secrets (`.env*`, key and credential files) and editing generated files. Global (main thread too). `.env.example|sample|template|dist` are exempt: they carry no values and are committed. Regression matrix: `bash ~/.claude/hooks/lib/test-sensitive-writes.sh` (24 cases) |
+| `agent_clone_boundary.rb` | PreToolUse (Write\|Edit\|MultiEdit\|Bash) | Confines a subagent to the checkout its session started in. Regression matrix: `bash ~/.claude/hooks/lib/test-clone-boundary.sh` (32 cases) |
+| `restrict-subagent-bash.sh` | PreToolUse (Bash) | For subagents ONLY (via `agent_id`): auto-*allows* safe commands so agents don't prompt, while denying the dangerous set (`git commit`/`push`, installs, outbound network, `rm -rf`, secret-file reads) for all agents, plus repo/system-mutating shell for read-only agents (their `agent-notes/` + `/tmp` scratch stay writable). Also sources `lib/destructive-patterns.sh` *before* the write-agent auto-allow, so that allow can never cover a destructive command. Main-thread bash is unaffected. Regression matrix: `bash ~/.claude/hooks/lib/test-subagent-bash.sh` (26 cases) |
 | `sync-howto-reminder.sh` | PostToolUse (Write\|Edit) | Reminds Claude to update this guide when an agent/command/hook/setting/CLAUDE.md changes |
-| `length-budget.sh --measure` | Stop | Logs the prose word count of the turn that just ended to `worklogs/response-lengths.tsv` |
+| `length-budget.sh --measure` | Stop | Logs the prose word count of the turn that just ended to `worklogs/response-lengths.tsv` (override with `LENGTH_BUDGET_LOG`). Regression matrix: `bash ~/.claude/hooks/lib/test-length-budget.sh` (12 cases) |
 | `length-budget.sh --remind` | UserPromptSubmit | Injects the CLAUDE.md caps plus the measured trailing average, but only when the average is over budget |
 
 **Length enforcement has to happen before the response, not after.** A `Stop` hook cannot retract
@@ -338,6 +340,44 @@ no paths. Carve-outs: the per-project layer, project memory, scratch, `/tmp`, pl
 **Assistant-owned scratch and memory writes are allowed.** `settings.json` allows `Write`/`Edit` under `~/.claude/repos/**` (the per-project layer, including `agent-notes/`), `~/.claude/projects/**` (per-project memory), `~/.claude/scratch/**`, and `/tmp/**`. These are the paths only Claude and its agents use, so persisting a fact or parking an intermediate file no longer prompts. Deliberately excluded: everything else under `~/.claude` (hooks, agent definitions, `settings.json` itself, this guide), which stays promptable because editing it changes how the setup behaves.
 
 **Permissions are scoped by tool, not by project.** A generic tool (`git`, `gh`, `yarn`, `npx`) is allowlisted once at user level. A tool that only exists in one project (`./mvnw`, a `make` target, `bundle exec`, `pnpm -r`) belongs in that project's `settings.local.json`. Getting this backwards produces duplicate rules across scopes, which is how an allowlist rots. Intentionally NOT allowlisted anywhere: `git push` and `gh pr create` — outward-facing, kept promptable. Beware broad prefixes that swallow them: `Bash(gh pr:*)` also matches `gh pr create`.
+
+---
+
+## Verifying the setup
+
+Two runners, both exit 0 or 1, both safe to run any time:
+
+```bash
+~/.claude/bin/test-hooks              # every hook matrix (7 suites, ~197 cases, ~18s)
+~/.claude/bin/test-hooks length       # only suites whose name matches
+~/.claude/bin/lint-assets             # frontmatter for skills, agents, commands (instant)
+bash ~/.claude/hooks/lib/test-<name>.sh   # one suite directly
+```
+
+**What these are.** Table-driven bash matrices, no framework, `jq` the only dependency. Each case
+builds the JSON payload Claude Code really sends a hook, pipes it to the real script, and asserts
+the decision. Three outcomes, and the distinction matters: `deny` stops the command, `allow` runs
+it with no prompt, and **pass-through** (empty output) means the hook abstains so normal prompting
+applies. An `allow` that should have been a pass-through is the dangerous direction, because it
+removes the human from a command nobody vetted.
+
+**A hook gets a spec; a skill gets an eval.** A hook is a pure function of its input JSON, so the
+right answer is deterministic and cheap to pin. Whether the model *picks* the right skill, or
+writes a review comment as a question, is not deterministic and cannot be tested this way. Those
+need evals, which this repo does not have yet.
+
+**Green on the first run means nothing until you break the hook on purpose.** Every matrix here
+was mutation-tested: drop `mv` from the read-only deny in `restrict-subagent-bash.sh` and case 20
+must fail; restore the `\x00` turn marker in `length-budget.sh` and five counting cases must fail.
+Copy the hook to a temp file, mutate it, and run with `HOOK=/tmp/mutant bash lib/test-<name>.sh`.
+Each suite honours that override for exactly this reason.
+
+**The lint exists because the failure is silent.** A `SKILL.md` with no frontmatter is never
+registered: `/name` does nothing and the model never sees it. Four skills sat in that state for
+part of 2026-09-21 and the only symptom was absence. `lint-assets` also fails when it checked zero
+assets, since a lint that silently inspects nothing looks exactly like a passing one.
+
+**Nothing runs these automatically yet.** That is the open gap, not an oversight to route around.
 
 ---
 

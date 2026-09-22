@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Lint the frontmatter of every skill and agent in this setup.
+#
+# Exists because the failure is silent: a SKILL.md with no frontmatter is not registered
+# at all, so `/name` does nothing and the model never sees the skill. Four skills were in
+# exactly that state for part of 2026-09-21 and the only symptom was absence.
+set -uo pipefail
+
+ROOT="${1:-$HOME/.claude}"
+errors=0
+warns=0
+checked=0
+
+err()  { errors=$((errors+1)); printf '  \033[31mERROR\033[0m %-28s %s\n' "$1" "$2"; }
+warn() { warns=$((warns+1));   printf '  \033[33mwarn \033[0m %-28s %s\n' "$1" "$2"; }
+
+# field <file> <name> -> value, from the leading --- block only
+field() {
+  awk -v k="$2" '
+    NR==1 && $0!="---" {exit}
+    NR>1 && $0=="---" {exit}
+    NR>1 {
+      i=index($0,":")
+      if (i>0 && substr($0,1,i-1)==k) { v=substr($0,i+1); sub(/^[ \t]+/,"",v); print v; exit }
+    }' "$1"
+}
+
+has_frontmatter() { [ "$(head -1 "$1")" = "---" ]; }
+
+echo "== skills =="
+for f in "$ROOT"/skills/*/SKILL.md; do
+  [ -e "$f" ] || { echo "  (none)"; break; }
+  dir=$(basename "$(dirname "$f")")
+  checked=$((checked+1))
+  if ! has_frontmatter "$f"; then
+    err "$dir" "no frontmatter block, so the harness never registers it"
+    continue
+  fi
+  name=$(field "$f" name)
+  desc=$(field "$f" description)
+  [ -n "$name" ] || err "$dir" "frontmatter has no 'name'"
+  [ -n "$desc" ] || err "$dir" "frontmatter has no 'description', nothing can trigger it"
+  [ -n "$name" ] && [ "$name" != "$dir" ] && err "$dir" "name '$name' does not match its directory"
+  # A description is the only trigger surface a skill has. Too short cannot match a task.
+  [ -n "$desc" ] && [ "$(printf '%s' "$desc" | wc -w | tr -d ' ')" -lt 12 ] \
+    && warn "$dir" "description is under 12 words; it will rarely match"
+  grep -q '\$ARGUMENTS' "$f" \
+    && err "$dir" "uses \$ARGUMENTS, which is command-only and never substituted in a skill"
+done
+
+echo "== agents =="
+for f in "$ROOT"/agents/*.md; do
+  [ -e "$f" ] || { echo "  (none)"; break; }
+  base=$(basename "$f" .md)
+  checked=$((checked+1))
+  if ! has_frontmatter "$f"; then
+    err "$base" "no frontmatter block"
+    continue
+  fi
+  name=$(field "$f" name)
+  [ -n "$name" ] || err "$base" "frontmatter has no 'name'"
+  [ -n "$name" ] && [ "$name" != "$base" ] && err "$base" "name '$name' does not match its filename"
+  grep -q '^description:' "$f" || err "$base" "frontmatter has no 'description'"
+  grep -q '^tools:' "$f" || warn "$base" "no explicit 'tools', so it inherits everything"
+done
+
+echo "== commands =="
+for f in "$ROOT"/commands/*.md; do
+  [ -e "$f" ] || { echo "  (none)"; break; }
+  base=$(basename "$f" .md)
+  checked=$((checked+1))
+  # Commands do not need frontmatter, but if they declare a name it has to be right.
+  if has_frontmatter "$f"; then
+    name=$(field "$f" name)
+    [ -n "$name" ] && [ "$name" != "$base" ] && err "$base" "name '$name' does not match its filename"
+  fi
+done
+
+printf '\n%d assets checked, %d errors, %d warnings\n' "$checked" "$errors" "$warns"
+[ "$checked" -eq 0 ] && { echo 'nothing was checked, which is itself a failure'; exit 1; }
+[ "$errors" -eq 0 ]

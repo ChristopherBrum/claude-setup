@@ -12,7 +12,9 @@
 # Never blocks and never errors out: a broken budget reminder must not stop work.
 set -uo pipefail
 
-LOG="$HOME/.claude/worklogs/response-lengths.tsv"
+# Overridable so the regression matrix can measure into a scratch file instead of the
+# real log. Production never sets it.
+LOG="${LENGTH_BUDGET_LOG:-$HOME/.claude/worklogs/response-lengths.tsv}"
 mkdir -p "$(dirname "$LOG")" 2>/dev/null
 
 payload=$(cat 2>/dev/null)
