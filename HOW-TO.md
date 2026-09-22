@@ -172,6 +172,17 @@ account for essentially all measured delegation; every write agent has sat at ze
 window. They are here to be asked for, and `/setup-review` will say in a month whether they
 earned their place.
 
+**Two of the four read-only agents also sat at zero, and the cause was wording, not the agent.**
+Over the same window `reviewer` ran 146 times and `explorer` 26, while `architect` and
+`qa-engineer` ran never, even though both were already wired into skills that run often.
+`/pre-pr` said "**consider** `qa-engineer` when the diff touches money, auth, data integrity or a
+migration", and `/ticket-plan` said to use `architect` "**instead**" of `explorer` on a large or
+open-shaped ticket. A verb like *consider* is advisory, so it loses every time, and *instead*
+made an either-or out of two agents that answer different questions. Both were rewritten on
+2026-09-21 into conditions that are checkable rather than weighable: name the trigger, say the
+agent runs when it is met, and require the skip to be reported. Before deleting an agent for zero
+usage, read the sentence that is supposed to launch it.
+
 ### How the split works
 
 Each agent reads **`.claude/PROJECT.md`** on startup: toolchain commands, layout, conventions,
@@ -253,6 +264,7 @@ catch, so a skipped check is always reported as skipped, never as passing.
 | `/ci-check` | Fetches failing CI checks/logs, categorizes each failure, reports fixes |
 | `/review-queue` | Pulls PRs awaiting my review; spawns `reviewer` per PR, then `/pr-review` + `/comments` |
 | `/pre-pr` | Pre-flight gate: targeted lint + typecheck + affected tests + `reviewer` pass |
+| `/next` | Ranks what is outstanding across tracker, open PRs and the checkout, by who is blocked. `/next setup` ranks setup work from the worklogs instead |
 | `/new-ticket <idea\|KEY-n>` | Drafts a ticket in the house format; creates it on your go-ahead. Given a key, reformats in place losslessly |
 
 **Archived commands live at `~/.claude/_archive/commands/`.** Restore with

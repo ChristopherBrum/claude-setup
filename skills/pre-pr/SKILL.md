@@ -74,9 +74,11 @@ heuristic.
 Launch the **`reviewer`** agent (Agent tool, `subagent_type: reviewer`) on the diff. It reads the
 same `PROJECT.md` and returns verified, severity-ranked findings.
 
-Consider **`qa-engineer`** in the same batch when the diff touches money, auth, data integrity,
-or a migration. It answers a different question: not "is this correct" but "what could break and
-is it covered".
+**Launch `qa-engineer` in the same batch whenever the diff touches money, auth, data integrity,
+or a migration.** This is not a judgement call: check the paths, and if any of the four apply,
+the agent runs. It answers a different question from `reviewer`: not "is this correct" but "what
+could break, and is it covered". When none of the four apply, say so in the report, the same way
+a skipped check is reported as skipped rather than as passing.
 
 ### 6. Report
 

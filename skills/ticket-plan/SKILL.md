@@ -108,7 +108,7 @@ Before planning, understand the existing code that this ticket touches:
 
 Use the `explorer` agent (via the Agent tool, `subagent_type: explorer`) for broader searches; it reads `.claude/PROJECT.md` and its own notes for this project. Be thorough here — plan quality depends on understanding what exists.
 
-For a Large ticket, or one whose shape is genuinely open, use `architect` instead: it returns ranked options with a recommendation, which is what step 6's multi-approach output wants anyway.
+**Launch `architect` alongside `explorer`, not instead of it, whenever the ticket has more than one plausible approach, crosses a module boundary, or introduces a component that does not exist yet.** They answer different questions: `explorer` finds what is already there, `architect` returns ranked options with a recommendation. If step 6 then sizes the ticket **Large** and `architect` was not run here, run it before writing the options rather than inventing them.
 
 ### 6. Produce the plan
 
