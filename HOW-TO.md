@@ -265,6 +265,8 @@ catch, so a skipped check is always reported as skipped, never as passing.
 | `/ci-check` | Fetches failing CI checks/logs, categorizes each failure, reports fixes |
 | `/review-queue` | Pulls PRs awaiting my review; spawns `reviewer` per PR, then `/pr-review` + `/comments` |
 | `/pre-pr` | Pre-flight gate: targeted lint + typecheck + affected tests + `reviewer` pass |
+| `/pre-deploy` | Turns a release range into a checklist doc: gates with owners, risks ranked by blast radius with watch and act-if, post-deploy actions. Batch-level rollout risk, not a second code review |
+| `/rails-lens` | Explains Java, Spring, JPA and Maven through the closest Rails concept, and says where the analogy breaks |
 | `/next` | Ranks what is outstanding across tracker, open PRs and the checkout, by who is blocked. `/next setup` ranks setup work from the worklogs instead |
 | `/new-ticket <idea\|KEY-n>` | Drafts a ticket in the house format; creates it on your go-ahead. Given a key, reformats in place losslessly |
 
