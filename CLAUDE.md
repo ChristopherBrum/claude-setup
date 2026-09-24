@@ -3,6 +3,12 @@
 These are my personal, cross-project instructions. The full setup is documented in
 `~/.claude/HOW-TO.md`. If you change how routing or the setup works, update that guide.
 
+## About me
+
+Senior Ruby on Rails engineer, new to Java and Spring Boot. When explaining Java, Spring,
+JPA, or Maven, anchor it to the closest Rails concept and say where the analogy breaks.
+`/rails-lens` is the full version of this.
+
 ## Length budgets
 
 Numbers, not adjectives. "Be concise" as prose failed: across one 30-day window I asked for
