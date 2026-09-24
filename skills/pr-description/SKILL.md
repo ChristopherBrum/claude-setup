@@ -73,6 +73,17 @@ budgets, the no-em-dash rule and the no-attribution rule survive any team standa
 this command still owns is procedure: gathering context (step 1), reading the diff for signals
 (step 2), the voice notes below, and the output mechanics (step 4).
 
+**Two author rules also survive any team standard, including its examples and length cap:**
+
+- **Section titles are markdown headers** (`#` syntax, any level that fits the nesting). Never
+  `**Problem.**` bold-text titles, even when the standard's example uses them.
+- **QA is complete, not a sample.** It walks a QA engineer through testing all of the work: every
+  acceptance criterion a human can exercise, every error code, each fallback and edge case the
+  ticket names, and the paths nearby that the change could break. Group the steps under headers
+  by area and number them continuously. QA is exempt from every length cap: the
+  standard's word limit and the per-section bullet cap in `~/.claude/CLAUDE.md`. Anything in
+  the ticket QA cannot see from the UI or Postman gets named in one line as covered by specs.
+
 If no such doc exists, fall back to a Jira link and these four sections:
 
 - **Summary** — one paragraph, 4 sentences max. Not a restatement of the ticket, not a
@@ -81,8 +92,10 @@ If no such doc exists, fall back to a Jira link and these four sections:
   interaction with existing behavior. Three points max, one or two sentences each.
 - **Outside-the-code work** — omit unless merging alone does not ship it: env var, secret,
   migration, feature flag and who enables it, new dependency, coordinated deploy.
-- **Testing** — omit when no human can exercise the change. Where it applies it is the one
-  section not trimmed for brevity, and it is written for the QA engineer.
+- **Testing** — omit when no human can exercise the change. Where it applies it follows the
+  "QA is complete" rule above.
+
+Use markdown headers for these too, never bold text.
 
 **Two traps worth naming, because both have shipped:**
 
@@ -112,7 +125,8 @@ often. Write for that on the first pass:
 
 **Before returning it, re-read and cut.** Every sentence that survives should fail this test:
 would deleting it lose information the reviewer needs? If not, delete it. Expect to lose a third
-of the first draft; that pass is part of the job, not an optional polish.
+of the first draft; that pass is part of the job, not an optional polish. The cut applies to
+wording inside QA, never to its steps: a step that tests something is never deleted for length.
 
 ### 4. Output
 
@@ -134,6 +148,8 @@ Use the HEREDOC form to preserve formatting.
 
 - Read the checked-in standard every run; do not cache what it said last time.
 - No em dashes.
+- Section titles are markdown headers, never bold text.
+- QA covers the whole change from the QA engineer's side, with no length cap.
 - Never list changed files or narrate the diff hunk by hunk.
 - Never invent content to fill a section. A section the diff does not justify is omitted, not
   filled with "N/A".
